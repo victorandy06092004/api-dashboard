@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Usuarios</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-light">
+
+  <div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-center flex-grow-1">Lista de Usuarios</h1>
+      <button class="btn btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#modalUsuario">
+        Agregar Usuario
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Nombre</th>
+            <th>Gmail</th>
+            <th>Estado</th>
+            <th>Rol</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-usuarios">
+          <tr>
+            <td colspan="4">Cargando datos...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🧩 Modal para Agregar Usuario -->
+  <div class="modal fade" id="modalUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="formUsuario" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">Agregar Usuario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" required>
+              <div class="invalid-feedback">El nombre es obligatorio.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Gmail</label>
+              <input type="email" class="form-control" id="gmail" required>
+              <div class="invalid-feedback">Ingresa un correo válido.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" required>
+              <div class="invalid-feedback">
+                La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Rol</label>
+              <select id="rol" class="form-select" required>
+                <option value="">Seleccione...</option>
+                <option value="1">Administrador</option>
+                <option value="2">Empleado</option>
+              </select>
+              <div class="invalid-feedback">Selecciona un rol válido.</div>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="estado" checked>
+              <label class="form-check-label" for="estado">Activo</label>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap y JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // -------------------- Cargar Usuarios --------------------
+    async function cargarUsuarios() {
+      try {
+        const respuesta = await fetch('/api/usuarios');
+        const usuarios = await respuesta.json();
+
+        const tabla = document.getElementById('tabla-usuarios');
+        tabla.innerHTML = ''; // limpiar tabla
+
+        usuarios.forEach(u => {
+          const fila = `
+          <tr class="${u.estado ? 'activo' : 'inactivo'}">
+            <td>${u.nombre}</td>
+            <td>${u.gmail}</td>
+            <td>${u.estado ? 'Activo' : 'Inactivo'}</td>
+            <td>${u.rol}</td>
+          </tr>`;
+          tabla.innerHTML += fila;
+        });
+      } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        document.getElementById('tabla-usuarios').innerHTML = `
+          <tr><td colspan="4" class="text-danger">Error al cargar los datos</td></tr>`;
+      }
+    }
+
+    cargarUsuarios();
+
+    // -------------------- Validación y Envío del Formulario --------------------
+    const form = document.getElementById('formUsuario');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!validarFormulario()) {
+        form.classList.add('was-validated');
+        return;
+      }
+
+      const nuevoUsuario = {
+        nombre: document.getElementById('nombre').value.trim(),
+        gmail: document.getElementById('gmail').value.trim(),
+        password: document.getElementById('password').value.trim(),
+        id_rol: parseInt(document.getElementById('rol').value),
+        estado: document.getElementById('estado').checked
+      };
+
+      try {
+        const respuesta = await fetch('/api/usuarios', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nuevoUsuario)
+        });
+
+        const data = await respuesta.json();
+        console.log(data);
+        alert(data.mensaje || 'Usuario agregado correctamente');
+
+        // Recargar tabla y cerrar modal
+        cargarUsuarios();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalUsuario'));
+        modal.hide();
+        form.reset();
+        form.classList.remove('was-validated');
+
+      } catch (error) {
+        console.error('Error al agregar usuario:', error);
+        alert('Error al agregar el usuario');
+      }
+    });
+
+    function validarFormulario() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const gmail = document.getElementById('gmail').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const rol = document.getElementById('rol').value;
+
+      const regexPassword = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+      if (!nombre || !gmail || !password || !rol) return false;
+      if (!regexPassword.test(password)) return false;
+      return true;
+    }
+
+    // ------------------------------------------------------------
+    // 🔜 Aquí luego se agregará la lógica para EDITAR USUARIOS
+    // ------------------------------------------------------------
+
+  </script>
+</body>
+</html>

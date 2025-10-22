@@ -1,0 +1,26 @@
+/* Colores personalizados para las filas según estado */
+tr.activo td {
+    background-color: #d1e7dd !important; /* verde claro */
+    color: #0f5132; /* verde oscuro para el texto */
+}
+
+tr.inactivo td {
+    background-color: #f8d7da !important; /* rojo claro */
+    color: #842029; /* rojo oscuro para el texto */
+}
+
+/* Opcional: bordes más suaves */
+table.table tbody tr td {
+    border-color: #dee2e6;
+}
+
+/* Efecto hover para mejorar la interacción visual */
+tr.activo:hover td {
+    background-color: #bcd9c7 !important; /* verde un poco más claro */
+    transition: background-color 0.2s ease-in-out;
+}
+
+tr.inactivo:hover td {
+    background-color: #f5bebe !important; /* rojo un poco más claro */
+    transition: background-color 0.2s ease-in-out;
+}
