@@ -11,9 +11,11 @@ app.get('/api/usuarios', async (req, res) => {
   try {
     const query = `
       SELECT 
+        u.id,
         u.nombre, 
         u.gmail, 
         u.estado, 
+        u.id_rol,
         r.nombre AS rol
       FROM usuarios u
       INNER JOIN rol r ON u.id_rol = r.id_rol
