@@ -1,79 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard de Usuarios</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel de Usuarios - Dashboard</title>
+
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Tu CSS personalizado -->
   <link rel="stylesheet" href="styles.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* pequeño ajuste para centrar título en pantallas pequeñas (opcional) */
+    .header-flex { gap: .5rem; flex-wrap: wrap; }
+  </style>
 </head>
 <body class="bg-light">
 
   <div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="text-center flex-grow-1">Lista de Usuarios</h1>
-      <button class="btn btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#modalUsuario">
-        Agregar Usuario
-      </button>
+    <!-- Espacio para el "Bienvenido" (aquí irá cuando hagamos login) -->
+    <!-- AQUI IRA EL MENSAJE DE BIENVENIDA (nombre del usuario y rol) -->
+    <h2 class="mb-4" id="bienvenida"><!-- Aquí irá el nombre del usuario logueado --></h2>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 header-flex">
+      <h3 class="mb-0">👤 Lista de Usuarios</h3>
+      <div>
+        <button id="btnNuevo" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#modalUsuario">
+          ➕ Nuevo Usuario
+        </button>
+        <!-- Placeholder para logout más adelante -->
+        <!-- <a href="#" class="btn btn-outline-dark">🚪 Cerrar Sesión</a> -->
+      </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered text-center align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Nombre</th>
-            <th>Gmail</th>
-            <th>Estado</th>
-            <th>Rol</th>
-          </tr>
-        </thead>
-        <tbody id="tabla-usuarios">
-          <tr>
-            <td colspan="4">Cargando datos...</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="card shadow">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover text-center align-middle" id="tablaUsuarios">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUsuarios">
+              <tr><td colspan="6">Cargando datos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 🧩 Modal para Agregar Usuario -->
+  <!-- Modal (Agregar / Editar) - Reutilizable -->
   <div class="modal fade" id="modalUsuario" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <form id="formUsuario" novalidate>
           <div class="modal-header">
-            <h5 class="modal-title">Agregar Usuario</h5>
+            <h5 class="modal-title" id="modalTitle">Agregar Usuario</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
 
           <div class="modal-body">
+            <input type="hidden" id="usuarioId" value="">
+
             <div class="mb-3">
               <label class="form-label">Nombre</label>
-              <input type="text" class="form-control" id="nombre" required>
+              <input type="text" id="nombre" class="form-control" required>
               <div class="invalid-feedback">El nombre es obligatorio.</div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Gmail</label>
-              <input type="email" class="form-control" id="gmail" required>
+              <label class="form-label">Correo electrónico</label>
+              <input type="email" id="gmail" class="form-control" required>
               <div class="invalid-feedback">Ingresa un correo válido.</div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Contraseña</label>
-              <input type="password" class="form-control" id="password" required>
-              <div class="invalid-feedback">
-                La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
-              </div>
+              <input type="password" id="contrasena" class="form-control" required>
+              <div class="form-text">Mínimo 8 caracteres, 1 mayúscula y 1 número.</div>
+              <div class="invalid-feedback">La contraseña debe cumplir el formato.</div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Rol</label>
-              <select id="rol" class="form-select" required>
-                <option value="">Seleccione...</option>
-                <option value="1">Administrador</option>
-                <option value="2">Empleado</option>
+              <select id="selectRol" class="form-select" required>
+                <option value="">Cargando roles...</option>
               </select>
               <div class="invalid-feedback">Selecciona un rol válido.</div>
             </div>
@@ -86,105 +106,263 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="submit" id="btnGuardar" class="btn btn-primary">Guardar</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap y JS -->
+  <!-- Modal Eliminar -->
+  <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">Eliminar Usuario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>¿Seguro que deseas eliminar a <strong id="nombreEliminar"></strong>?</p>
+          <input type="hidden" id="idEliminar" value="">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="confirmarEliminar" class="btn btn-danger">Eliminar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // -------------------- Cargar Usuarios --------------------
-    async function cargarUsuarios() {
-      try {
-        const respuesta = await fetch('/api/usuarios');
-        const usuarios = await respuesta.json();
+  // ------------------ Configuración ------------------
+  const API_BASE = 'http://localhost:3000'; // URL fija por ahora
+  const ENDPOINT_USUARIOS = API_BASE + '/api/usuarios';
+  const ENDPOINT_ROLES = API_BASE + '/api/roles';
 
-        const tabla = document.getElementById('tabla-usuarios');
-        tabla.innerHTML = ''; // limpiar tabla
+  // Elementos del DOM
+  const tbodyUsuarios = document.getElementById('tbodyUsuarios');
+  const selectRol = document.getElementById('selectRol');
+  const formUsuario = document.getElementById('formUsuario');
+  const modalUsuarioEl = document.getElementById('modalUsuario');
+  const bsModalUsuario = new bootstrap.Modal(modalUsuarioEl);
+  const modalEliminarEl = document.getElementById('modalEliminar');
+  const bsModalEliminar = new bootstrap.Modal(modalEliminarEl);
 
-        usuarios.forEach(u => {
-          const fila = `
-          <tr class="${u.estado ? 'activo' : 'inactivo'}">
-            <td>${u.nombre}</td>
-            <td>${u.gmail}</td>
-            <td>${u.estado ? 'Activo' : 'Inactivo'}</td>
-            <td>${u.rol}</td>
-          </tr>`;
-          tabla.innerHTML += fila;
-        });
-      } catch (error) {
-        console.error('Error cargando usuarios:', error);
-        document.getElementById('tabla-usuarios').innerHTML = `
-          <tr><td colspan="4" class="text-danger">Error al cargar los datos</td></tr>`;
-      }
+  // Helpers (validaciones)
+  function validarPassword(pw) {
+    const regex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return regex.test(pw);
+  }
+
+  // ------------------ Cargar Roles ------------------
+  async function cargarRoles() {
+    try {
+      const res = await fetch(ENDPOINT_ROLES);
+      if (!res.ok) throw new Error('Error cargando roles');
+      const roles = await res.json();
+      selectRol.innerHTML = '<option value="">Selecciona...</option>';
+      roles.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id_rol;
+        opt.textContent = r.nombre;
+        selectRol.appendChild(opt);
+      });
+    } catch (err) {
+      console.error(err);
+      selectRol.innerHTML = '<option value="">Error cargando roles</option>';
     }
+  }
 
-    cargarUsuarios();
+  // ------------------ Cargar Usuarios (tabla) ------------------
+  async function cargarUsuarios() {
+    tbodyUsuarios.innerHTML = '<tr><td colspan="6">Cargando datos...</td></tr>';
+    try {
+      const res = await fetch(ENDPOINT_USUARIOS);
+      if (!res.ok) throw new Error('Error al obtener usuarios');
+      const usuarios = await res.json();
 
-    // -------------------- Validación y Envío del Formulario --------------------
-    const form = document.getElementById('formUsuario');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (!validarFormulario()) {
-        form.classList.add('was-validated');
+      if (!Array.isArray(usuarios) || usuarios.length === 0) {
+        tbodyUsuarios.innerHTML = '<tr><td colspan="6">No hay usuarios registrados</td></tr>';
         return;
       }
 
-      const nuevoUsuario = {
-        nombre: document.getElementById('nombre').value.trim(),
-        gmail: document.getElementById('gmail').value.trim(),
-        password: document.getElementById('password').value.trim(),
-        id_rol: parseInt(document.getElementById('rol').value),
-        estado: document.getElementById('estado').checked
-      };
+      tbodyUsuarios.innerHTML = '';
+      usuarios.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.className = u.estado ? 'activo' : 'inactivo';
 
-      try {
-        const respuesta = await fetch('/api/usuarios', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nuevoUsuario)
-        });
+        tr.innerHTML = `
+          <td>${u.id}</td>
+          <td>${escapeHtml(u.nombre)}</td>
+          <td>${escapeHtml(u.gmail)}</td>
+          <td>${escapeHtml(u.rol)}</td>
+          <td>${u.estado ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}</td>
+          <td>
+            <button class="btn btn-warning btn-sm me-1 editarBtn">✏️ Editar</button>
+            <button class="btn btn-danger btn-sm eliminarBtn">🗑️ Eliminar</button>
+          </td>
+        `;
 
-        const data = await respuesta.json();
-        console.log(data);
-        alert(data.mensaje || 'Usuario agregado correctamente');
+        // Asignar eventos a botones (capturamos datos por closure)
+        const editarBtn = tr.querySelector('.editarBtn');
+        const eliminarBtn = tr.querySelector('.eliminarBtn');
 
-        // Recargar tabla y cerrar modal
-        cargarUsuarios();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalUsuario'));
-        modal.hide();
-        form.reset();
-        form.classList.remove('was-validated');
+        editarBtn.addEventListener('click', () => abrirModalEditar(u));
+        eliminarBtn.addEventListener('click', () => abrirModalEliminar(u));
 
-      } catch (error) {
-        console.error('Error al agregar usuario:', error);
-        alert('Error al agregar el usuario');
-      }
-    });
+        tbodyUsuarios.appendChild(tr);
+      });
 
-    function validarFormulario() {
-      const nombre = document.getElementById('nombre').value.trim();
-      const gmail = document.getElementById('gmail').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const rol = document.getElementById('rol').value;
+    } catch (err) {
+      console.error(err);
+      tbodyUsuarios.innerHTML = '<tr><td colspan="6" class="text-danger">Error al cargar usuarios</td></tr>';
+    }
+  }
 
-      const regexPassword = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+  // Escape simple para evitar inyección HTML en los nombres/correos
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#39;');
+  }
 
-      if (!nombre || !gmail || !password || !rol) return false;
-      if (!regexPassword.test(password)) return false;
-      return true;
+  // ------------------ Abrir modal para Agregar ------------------
+  document.getElementById('btnNuevo').addEventListener('click', () => {
+    document.getElementById('usuarioId').value = '';
+    document.getElementById('nombre').value = '';
+    document.getElementById('gmail').value = '';
+    document.getElementById('contrasena').value = '';
+    selectRol.value = '';
+    document.getElementById('estado').checked = true;
+    document.getElementById('modalTitle').textContent = 'Registrar Nuevo Usuario';
+    formUsuario.classList.remove('was-validated');
+  });
+
+  // ------------------ Abrir modal para Editar ------------------
+  function abrirModalEditar(u) {
+    document.getElementById('usuarioId').value = u.id;
+    document.getElementById('nombre').value = u.nombre;
+    document.getElementById('gmail').value = u.gmail;
+    document.getElementById('contrasena').value = u.contrasena || ''; // si no viene, dejar vacío
+    selectRol.value = u.id_rol;
+    document.getElementById('estado').checked = !!u.estado;
+    document.getElementById('modalTitle').textContent = 'Editar Usuario';
+    formUsuario.classList.remove('was-validated');
+    bsModalUsuario.show();
+  }
+
+  // ------------------ Abrir modal de eliminar ------------------
+  function abrirModalEliminar(u) {
+    document.getElementById('idEliminar').value = u.id;
+    document.getElementById('nombreEliminar').textContent = u.nombre;
+    document.getElementById('idEliminar').value = u.id;
+    bsModalEliminar.show();
+  }
+
+  // ------------------ Enviar formulario (Agregar / Editar) ------------------
+  formUsuario.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formUsuario.classList.remove('was-validated');
+
+    const id = document.getElementById('usuarioId').value;
+    const nombre = document.getElementById('nombre').value.trim();
+    const gmail = document.getElementById('gmail').value.trim();
+    const contrasena = document.getElementById('contrasena').value.trim();
+    const id_rol = parseInt(selectRol.value);
+    const estado = document.getElementById('estado').checked;
+
+    // Validaciones
+    if (!nombre || !gmail || !contrasena || !id_rol) {
+      formUsuario.classList.add('was-validated');
+      return;
+    }
+    if (!validarPassword(contrasena)) {
+      Swal.fire({ icon: 'warning', title: 'Contraseña inválida', text: 'La contraseña debe tener 8+ caracteres, una mayúscula y un número.' });
+      return;
     }
 
-    // ------------------------------------------------------------
-    // 🔜 Aquí luego se agregará la lógica para EDITAR USUARIOS
-    // ------------------------------------------------------------
+    try {
+      let res, data;
+      if (!id) {
+        // POST -> crear
+        res = await fetch(ENDPOINT_USUARIOS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, gmail, contrasena, id_rol, estado })
+        });
+      } else {
+        // PUT -> editar
+        res = await fetch(`${ENDPOINT_USUARIOS}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, gmail, contrasena, id_rol, estado })
+        });
+      }
+
+      data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.mensaje || JSON.stringify(data));
+      }
+
+      // Éxito
+      Swal.fire({
+        icon: 'success',
+        title: data.mensaje || (id ? 'Usuario actualizado' : 'Usuario creado'),
+        timer: 1400,
+        showConfirmButton: false
+      });
+
+      bsModalUsuario.hide();
+      formUsuario.reset();
+      await cargarUsuarios();
+
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message || 'Error al procesar la solicitud'
+      });
+    }
+  });
+
+  // ------------------ Confirmar y ejecutar eliminación ------------------
+  document.getElementById('confirmarEliminar').addEventListener('click', async () => {
+    const id = document.getElementById('idEliminar').value;
+    if (!id) return;
+
+    try {
+      const res = await fetch(`${ENDPOINT_USUARIOS}/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || 'Error al eliminar');
+
+      Swal.fire({ icon: 'success', title: data.mensaje || 'Usuario eliminado', timer: 1200, showConfirmButton: false });
+      bsModalEliminar.hide();
+      await cargarUsuarios();
+    } catch (err) {
+      console.error(err);
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'No se pudo eliminar' });
+    }
+  });
+
+  // ------------------ Inicialización ------------------
+  (async function init() {
+    // Cargar roles y usuarios
+    await cargarRoles();
+    await cargarUsuarios();
+
+    // En este lugar puedes inyectar el nombre del usuario / rol cuando implementes login
+    // ejemplo:
+    // document.getElementById('bienvenida').textContent = `👋 Bienvenido, ${nombreUsuario} - ${nombreRol}`;
+    // <-- AQUÍ IRÁ EL MENSAJE DE BIENVENIDA (LOGIN) -->
+  })();
 
   </script>
 </body>
