@@ -30,6 +30,37 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
+// 🟡 Obtener un usuario por ID (para edición)
+app.get('/api/usuarios/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT 
+        u.id,
+        u.nombre,
+        u.gmail,
+        u.contrasena,
+        u.estado,
+        u.id_rol,
+        r.nombre AS rol
+      FROM usuarios u
+      INNER JOIN rol r ON u.id_rol = r.id_rol
+      WHERE u.id = $1;
+    `;
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error al obtener usuario:', error);
+    res.status(500).json({ mensaje: 'Error al obtener usuario' });
+  }
+});
+
+
 // Agregar nuevo usuario
 app.post('/api/usuarios', async (req, res) => {
   const { nombre, gmail, contrasena, estado = true, id_rol } = req.body;

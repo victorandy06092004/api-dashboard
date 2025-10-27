@@ -245,17 +245,31 @@
   });
 
   // ------------------ Abrir modal para Editar ------------------
-  function abrirModalEditar(u) {
-    document.getElementById('usuarioId').value = u.id;
-    document.getElementById('nombre').value = u.nombre;
-    document.getElementById('gmail').value = u.gmail;
-    document.getElementById('contrasena').value = u.contrasena || ''; // si no viene, dejar vacío
-    selectRol.value = u.id_rol;
-    document.getElementById('estado').checked = !!u.estado;
-    document.getElementById('modalTitle').textContent = 'Editar Usuario';
-    formUsuario.classList.remove('was-validated');
-    bsModalUsuario.show();
+  async function abrirModalEditar(u) {
+    try {
+      // 1. Consultar datos del usuario por su ID
+      const response = await fetch(`/api/usuarios/${u.id}`);
+      if (!response.ok) throw new Error('Error al obtener usuario por ID');
+      const usuario = await response.json();
+
+      // 2. Asignar valores al formulario
+      document.getElementById('usuarioId').value = usuario.id;
+      document.getElementById('nombre').value = usuario.nombre;
+      document.getElementById('gmail').value = usuario.gmail;
+      document.getElementById('contrasena').value = usuario.contrasena || '';
+      document.getElementById('selectRol').value = usuario.id_rol;
+      document.getElementById('estado').checked = !!usuario.estado;
+
+      // 3. Configurar modal y mostrarlo
+      document.getElementById('modalTitle').textContent = 'Editar Usuario';
+      formUsuario.classList.remove('was-validated');
+      bsModalUsuario.show();
+    } catch (error) {
+      console.error('Error al abrir modal de edición:', error);
+      alert('No se pudo cargar la información del usuario.');
+    }
   }
+
 
   // ------------------ Abrir modal de eliminar ------------------
   function abrirModalEliminar(u) {
