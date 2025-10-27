@@ -166,6 +166,50 @@ app.get('/api/roles', async (req, res) => {
   }
 });
 
+// 🟢 Endpoint de LOGIN
+app.post('/api/login', async (req, res) => {
+  const { gmail, contrasena } = req.body;
+
+  try {
+    const result = await pool.query(`
+      SELECT u.id, u.nombre, u.gmail, u.contrasena, u.estado, r.nombre AS rol
+      FROM usuarios u
+      INNER JOIN rol r ON u.id_rol = r.id_rol
+      WHERE u.gmail = $1
+    `, [gmail]);
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    const user = result.rows[0];
+
+    if (user.contrasena !== contrasena) {
+      return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
+    }
+
+    if (!user.estado) {
+      return res.status(403).json({ mensaje: 'El usuario está inactivo' });
+    }
+
+    // Login exitoso
+    res.json({
+      mensaje: 'Inicio de sesión exitoso',
+      usuario: {
+        id: user.id,
+        nombre: user.nombre,
+        gmail: user.gmail,
+        rol: user.rol
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ mensaje: 'Error al iniciar sesión' });
+  }
+});
+
+
 // Iniciar servidor
 const PORT = 3000;
 app.use(express.static('public'));
