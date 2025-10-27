@@ -31,6 +31,7 @@
           ➕ Nuevo Usuario
         </button>
         <!-- Placeholder para logout más adelante -->
+         <button id="btnLogout" class="btn btn-outline-dark">🚪 Cerrar Sesión</button>
         <!-- <a href="#" class="btn btn-outline-dark">🚪 Cerrar Sesión</a> -->
       </div>
     </div>
@@ -160,6 +161,13 @@
   const bsModalUsuario = new bootstrap.Modal(modalUsuarioEl);
   const modalEliminarEl = document.getElementById('modalEliminar');
   const bsModalEliminar = new bootstrap.Modal(modalEliminarEl);
+
+  // Cerrar sesion
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    localStorage.removeItem('usuario');
+    window.location.href = 'login.html';
+  });
+
 
   // Helpers (validaciones)
   function validarPassword(pw) {
