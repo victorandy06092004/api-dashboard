@@ -24,57 +24,55 @@
   </div>
 
   <script>
-  const API_BASE = 'http://localhost:3000';
+    const API_BASE = 'http://localhost:3000';
 
-  document.getElementById('formLogin').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const gmail = document.getElementById('gmail').value.trim();
-    const contrasena = document.getElementById('contrasena').value.trim();
+      const gmail = document.getElementById('gmail').value.trim();
+      const contrasena = document.getElementById('contrasena').value.trim();
 
-    if (!gmail || !contrasena) {
-      Swal.fire('Atención', 'Por favor completa todos los campos.', 'warning');
-      return;
-    }
-
-    try {
-      const res = await fetch(API_BASE + '/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gmail, contrasena })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.mensaje || 'Error al iniciar sesión');
-
-      // 🔍 Verificamos si el rol es admin
-      if (data.usuario.rol.toLowerCase() !== 'admin') {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Acceso restringido',
-          text: 'Solo los administradores pueden acceder a este panel.',
-        });
+      if (!gmail || !contrasena) {
+        Swal.fire('Atención', 'Por favor completa todos los campos.', 'warning');
         return;
       }
 
-      // ✅ Guardamos datos del usuario (solo si es admin)
-      localStorage.setItem('usuario', JSON.stringify(data.usuario));
+      try {
+        const res = await fetch(API_BASE + '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gmail, contrasena })
+        });
 
-      // 🔁 Redirigimos al dashboard
-      window.location.replace('dashboard.html');
+        const data = await res.json();
 
-    } catch (err) {
-      Swal.fire('Error', err.message, 'error');
-    }
-  });
+        if (!res.ok) throw new Error(data.mensaje || 'Error al iniciar sesión');
 
-  // Si ya hay sesión activa (admin), redirigir directamente al dashboard
-  const usuario = JSON.parse(localStorage.getItem('usuario'));
-  if (usuario && usuario.rol.toLowerCase() === 'admin') {
-    window.location.replace('dashboard.html');
-  }
+        // Guardamos datos del usuario
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+
+        const rol = data.usuario.rol.toLowerCase();
+
+        // 🔀 Redirigir según rol
+        if (rol === 'admin') {
+          window.location.href = 'dashboard.html';
+        } else if (rol === 'supervisor') {
+          window.location.href = 'dashboard_supervisor.html';
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Rol no autorizado',
+            text: 'Tu rol no tiene acceso a ningún panel disponible.',
+          }).then(() => {
+            localStorage.removeItem('usuario');
+            window.location.href = 'login.html';
+          });
+        }
+
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+      }
+    });
   </script>
-
 </body>
 </html>
