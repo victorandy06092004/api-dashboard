@@ -138,20 +138,48 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-  // 🔒 Verificar sesión (antes de todo)
+  // ------------------- 🔒 Control de acceso -------------------
   const usuarioActual = JSON.parse(localStorage.getItem('usuario'));
+
+  // Si no hay sesión -> ir al login
   if (!usuarioActual) {
-    window.location.href = 'login.html';
+    window.location.replace('login.html');
+  } else if (usuarioActual.rol.toLowerCase() !== 'admin') {
+    // Si no es admin -> redirigir también
+    alert('Acceso restringido: solo administradores.');
+    localStorage.removeItem('usuario');
+    window.location.replace('login.html');
   }
 
-  // Mostrar bienvenida
-  document.getElementById('bienvenida').textContent = `👋 Bienvenido, ${usuarioActual.nombre} (${usuarioActual.rol})`;
+  // Bloquear volver atrás en el navegador
+  window.history.pushState(null, '', window.location.href);
+  window.onpopstate = function () {
+    window.history.pushState(null, '', window.location.href);
+  };
 
-  
-  // ------------------ Configuración ------------------
-  const API_BASE = 'http://localhost:3000'; // URL fija por ahora
-  const ENDPOINT_USUARIOS = API_BASE + '/api/usuarios';
-  const ENDPOINT_ROLES = API_BASE + '/api/roles';
+  // Evita caché del dashboard después de logout
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  // Mostrar bienvenida
+  if (usuarioActual) {
+    document.getElementById('bienvenida').textContent =
+      `👋 Bienvenido, ${usuarioActual.nombre} (${usuarioActual.rol})`;
+  }
+
+  // ------------------- 🚪 Cerrar sesión -------------------
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    localStorage.removeItem('usuario');
+    window.location.replace('login.html');
+  });
+
+  // ------------------- Configuración API -------------------
+  const API_BASE = 'http://localhost:3000';
+  const ENDPOINT_USUARIOS = `${API_BASE}/api/usuarios`;
+  const ENDPOINT_ROLES = `${API_BASE}/api/roles`;
 
   // Elementos del DOM
   const tbodyUsuarios = document.getElementById('tbodyUsuarios');
