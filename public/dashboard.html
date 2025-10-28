@@ -138,292 +138,256 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-  // ------------------- 🔒 Control de acceso -------------------
-  const usuarioActual = JSON.parse(localStorage.getItem('usuario'));
+    const API_BASE = 'http://localhost:3000';
+    const ENDPOINT_USUARIOS = `${API_BASE}/api/usuarios`;
+    const ENDPOINT_ROLES = `${API_BASE}/api/roles`;
 
-  // Si no hay sesión -> ir al login
-  if (!usuarioActual) {
-    window.location.replace('login.html');
-  } else if (usuarioActual.rol.toLowerCase() !== 'admin') {
-    // Si no es admin -> redirigir también
-    alert('Acceso restringido: solo administradores.');
-    localStorage.removeItem('usuario');
-    window.location.replace('login.html');
-  }
+    const tbodyUsuarios = document.getElementById('tbodyUsuarios');
+    const selectRol = document.getElementById('selectRol');
+    const formUsuario = document.getElementById('formUsuario');
+    const modalUsuarioEl = document.getElementById('modalUsuario');
+    const bsModalUsuario = new bootstrap.Modal(modalUsuarioEl);
+    const modalEliminarEl = document.getElementById('modalEliminar');
+    const bsModalEliminar = new bootstrap.Modal(modalEliminarEl);
 
-  // Bloquear volver atrás en el navegador
-  window.history.pushState(null, '', window.location.href);
-  window.onpopstate = function () {
+    // ------------------- 🔒 Control de acceso -------------------
+    function verificarSesion() {
+      const usuarioActual = JSON.parse(localStorage.getItem('usuario'));
+      if (!usuarioActual || usuarioActual.rol.toLowerCase() !== 'admin') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Acceso restringido',
+          text: 'Debes iniciar sesión como administrador.',
+        }).then(() => {
+          localStorage.removeItem('usuario');
+          window.location.href = 'login.html';
+        });
+      } else {
+        document.getElementById('bienvenida').textContent =
+          `👋 Bienvenido, ${usuarioActual.nombre} (${usuarioActual.rol})`;
+        init();
+      }
+    }
+
+    // 🔁 Evitar caché y forzar verificación al volver atrás
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    });
+
+    // Bloquear navegación hacia atrás
     window.history.pushState(null, '', window.location.href);
-  };
+    window.onpopstate = function () {
+      window.history.pushState(null, '', window.location.href);
+    };
 
-  // Evita caché del dashboard después de logout
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) {
-      window.location.reload();
-    }
-  });
+    verificarSesion();
 
-  // Mostrar bienvenida
-  if (usuarioActual) {
-    document.getElementById('bienvenida').textContent =
-      `👋 Bienvenido, ${usuarioActual.nombre} (${usuarioActual.rol})`;
-  }
-
-  // ------------------- 🚪 Cerrar sesión -------------------
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    localStorage.removeItem('usuario');
-    window.location.replace('login.html');
-  });
-
-  // ------------------- Configuración API -------------------
-  const API_BASE = 'http://localhost:3000';
-  const ENDPOINT_USUARIOS = `${API_BASE}/api/usuarios`;
-  const ENDPOINT_ROLES = `${API_BASE}/api/roles`;
-
-  // Elementos del DOM
-  const tbodyUsuarios = document.getElementById('tbodyUsuarios');
-  const selectRol = document.getElementById('selectRol');
-  const formUsuario = document.getElementById('formUsuario');
-  const modalUsuarioEl = document.getElementById('modalUsuario');
-  const bsModalUsuario = new bootstrap.Modal(modalUsuarioEl);
-  const modalEliminarEl = document.getElementById('modalEliminar');
-  const bsModalEliminar = new bootstrap.Modal(modalEliminarEl);
-
-  // Cerrar sesion
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    localStorage.removeItem('usuario');
-    window.location.href = 'login.html';
-  });
-
-
-  // Helpers (validaciones)
-  function validarPassword(pw) {
-    const regex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-    return regex.test(pw);
-  }
-
-  // ------------------ Cargar Roles ------------------
-  async function cargarRoles() {
-    try {
-      const res = await fetch(ENDPOINT_ROLES);
-      if (!res.ok) throw new Error('Error cargando roles');
-      const roles = await res.json();
-      selectRol.innerHTML = '<option value="">Selecciona...</option>';
-      roles.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id_rol;
-        opt.textContent = r.nombre;
-        selectRol.appendChild(opt);
+    // ------------------- 🚪 Cerrar sesión -------------------
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      localStorage.removeItem('usuario');
+      Swal.fire({
+        icon: 'info',
+        title: 'Sesión cerrada',
+        text: 'Has cerrado sesión correctamente.',
+        timer: 1500,
+        showConfirmButton: false
+      }).then(() => {
+        window.location.href = 'login.html';
       });
-    } catch (err) {
-      console.error(err);
-      selectRol.innerHTML = '<option value="">Error cargando roles</option>';
+    });
+
+    // ------------------- Validación de contraseña -------------------
+    function validarPassword(pw) {
+      const regex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+      return regex.test(pw);
     }
-  }
 
-  // ------------------ Cargar Usuarios (tabla) ------------------
-  async function cargarUsuarios() {
-    tbodyUsuarios.innerHTML = '<tr><td colspan="6">Cargando datos...</td></tr>';
-    try {
-      const res = await fetch(ENDPOINT_USUARIOS);
-      if (!res.ok) throw new Error('Error al obtener usuarios');
-      const usuarios = await res.json();
+    // ------------------ Cargar Roles ------------------
+    async function cargarRoles() {
+      try {
+        const res = await fetch(ENDPOINT_ROLES);
+        if (!res.ok) throw new Error('Error cargando roles');
+        const roles = await res.json();
+        selectRol.innerHTML = '<option value="">Selecciona...</option>';
+        roles.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id_rol;
+          opt.textContent = r.nombre;
+          selectRol.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        selectRol.innerHTML = '<option value="">Error cargando roles</option>';
+      }
+    }
 
-      if (!Array.isArray(usuarios) || usuarios.length === 0) {
-        tbodyUsuarios.innerHTML = '<tr><td colspan="6">No hay usuarios registrados</td></tr>';
+    // ------------------ Cargar Usuarios (tabla) ------------------
+    async function cargarUsuarios() {
+      tbodyUsuarios.innerHTML = '<tr><td colspan="6">Cargando datos...</td></tr>';
+      try {
+        const res = await fetch(ENDPOINT_USUARIOS);
+        if (!res.ok) throw new Error('Error al obtener usuarios');
+        const usuarios = await res.json();
+
+        if (!Array.isArray(usuarios) || usuarios.length === 0) {
+          tbodyUsuarios.innerHTML = '<tr><td colspan="6">No hay usuarios registrados</td></tr>';
+          return;
+        }
+
+        tbodyUsuarios.innerHTML = '';
+        usuarios.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.className = u.estado ? 'activo' : 'inactivo';
+
+          tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${escapeHtml(u.nombre)}</td>
+            <td>${escapeHtml(u.gmail)}</td>
+            <td>${escapeHtml(u.rol)}</td>
+            <td>${u.estado
+              ? '<span class="badge bg-success">Activo</span>'
+              : '<span class="badge bg-danger">Inactivo</span>'}</td>
+            <td>
+              <button class="btn btn-warning btn-sm me-1 editarBtn">✏️ Editar</button>
+              <button class="btn btn-danger btn-sm eliminarBtn">🗑️ Eliminar</button>
+            </td>
+          `;
+
+          const editarBtn = tr.querySelector('.editarBtn');
+          const eliminarBtn = tr.querySelector('.eliminarBtn');
+
+          editarBtn.addEventListener('click', () => abrirModalEditar(u));
+          eliminarBtn.addEventListener('click', () => abrirModalEliminar(u));
+
+          tbodyUsuarios.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error(err);
+        tbodyUsuarios.innerHTML = '<tr><td colspan="6" class="text-danger">Error al cargar usuarios</td></tr>';
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    // ------------------ Abrir modal para Agregar ------------------
+    document.getElementById('btnNuevo').addEventListener('click', () => {
+      document.getElementById('usuarioId').value = '';
+      document.getElementById('nombre').value = '';
+      document.getElementById('gmail').value = '';
+      document.getElementById('contrasena').value = '';
+      selectRol.value = '';
+      document.getElementById('estado').checked = true;
+      document.getElementById('modalTitle').textContent = 'Registrar Nuevo Usuario';
+      formUsuario.classList.remove('was-validated');
+    });
+
+    // ------------------ Abrir modal para Editar ------------------
+    async function abrirModalEditar(u) {
+      try {
+        const response = await fetch(`/api/usuarios/${u.id}`);
+        if (!response.ok) throw new Error('Error al obtener usuario por ID');
+        const usuario = await response.json();
+
+        document.getElementById('usuarioId').value = usuario.id;
+        document.getElementById('nombre').value = usuario.nombre;
+        document.getElementById('gmail').value = usuario.gmail;
+        document.getElementById('contrasena').value = usuario.contrasena || '';
+        document.getElementById('selectRol').value = usuario.id_rol;
+        document.getElementById('estado').checked = !!usuario.estado;
+
+        document.getElementById('modalTitle').textContent = 'Editar Usuario';
+        formUsuario.classList.remove('was-validated');
+        bsModalUsuario.show();
+      } catch (error) {
+        console.error('Error al abrir modal de edición:', error);
+        Swal.fire('Error', 'No se pudo cargar la información del usuario.', 'error');
+      }
+    }
+
+    // ------------------ Modal eliminar ------------------
+    function abrirModalEliminar(u) {
+      document.getElementById('idEliminar').value = u.id;
+      document.getElementById('nombreEliminar').textContent = u.nombre;
+      bsModalEliminar.show();
+    }
+
+    // ------------------ Guardar (Agregar / Editar) ------------------
+    formUsuario.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formUsuario.classList.remove('was-validated');
+
+      const id = document.getElementById('usuarioId').value;
+      const nombre = document.getElementById('nombre').value.trim();
+      const gmail = document.getElementById('gmail').value.trim();
+      const contrasena = document.getElementById('contrasena').value.trim();
+      const id_rol = parseInt(selectRol.value);
+      const estado = document.getElementById('estado').checked;
+
+      if (!nombre || !gmail || !contrasena || !id_rol) {
+        formUsuario.classList.add('was-validated');
+        return;
+      }
+      if (!validarPassword(contrasena)) {
+        Swal.fire('Advertencia', 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.', 'warning');
         return;
       }
 
-      tbodyUsuarios.innerHTML = '';
-      usuarios.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.className = u.estado ? 'activo' : 'inactivo';
-
-        tr.innerHTML = `
-          <td>${u.id}</td>
-          <td>${escapeHtml(u.nombre)}</td>
-          <td>${escapeHtml(u.gmail)}</td>
-          <td>${escapeHtml(u.rol)}</td>
-          <td>${u.estado ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}</td>
-          <td>
-            <button class="btn btn-warning btn-sm me-1 editarBtn">✏️ Editar</button>
-            <button class="btn btn-danger btn-sm eliminarBtn">🗑️ Eliminar</button>
-          </td>
-        `;
-
-        // Asignar eventos a botones (capturamos datos por closure)
-        const editarBtn = tr.querySelector('.editarBtn');
-        const eliminarBtn = tr.querySelector('.eliminarBtn');
-
-        editarBtn.addEventListener('click', () => abrirModalEditar(u));
-        eliminarBtn.addEventListener('click', () => abrirModalEliminar(u));
-
-        tbodyUsuarios.appendChild(tr);
-      });
-
-    } catch (err) {
-      console.error(err);
-      tbodyUsuarios.innerHTML = '<tr><td colspan="6" class="text-danger">Error al cargar usuarios</td></tr>';
-    }
-  }
-
-  // Escape simple para evitar inyección HTML en los nombres/correos
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll('&','&amp;')
-      .replaceAll('<','&lt;')
-      .replaceAll('>','&gt;')
-      .replaceAll('"','&quot;')
-      .replaceAll("'",'&#39;');
-  }
-
-  // ------------------ Abrir modal para Agregar ------------------
-  document.getElementById('btnNuevo').addEventListener('click', () => {
-    document.getElementById('usuarioId').value = '';
-    document.getElementById('nombre').value = '';
-    document.getElementById('gmail').value = '';
-    document.getElementById('contrasena').value = '';
-    selectRol.value = '';
-    document.getElementById('estado').checked = true;
-    document.getElementById('modalTitle').textContent = 'Registrar Nuevo Usuario';
-    formUsuario.classList.remove('was-validated');
-  });
-
-  // ------------------ Abrir modal para Editar ------------------
-  async function abrirModalEditar(u) {
-    try {
-      // 1. Consultar datos del usuario por su ID
-      const response = await fetch(`/api/usuarios/${u.id}`);
-      if (!response.ok) throw new Error('Error al obtener usuario por ID');
-      const usuario = await response.json();
-
-      // 2. Asignar valores al formulario
-      document.getElementById('usuarioId').value = usuario.id;
-      document.getElementById('nombre').value = usuario.nombre;
-      document.getElementById('gmail').value = usuario.gmail;
-      document.getElementById('contrasena').value = usuario.contrasena || '';
-      document.getElementById('selectRol').value = usuario.id_rol;
-      document.getElementById('estado').checked = !!usuario.estado;
-
-      // 3. Configurar modal y mostrarlo
-      document.getElementById('modalTitle').textContent = 'Editar Usuario';
-      formUsuario.classList.remove('was-validated');
-      bsModalUsuario.show();
-    } catch (error) {
-      console.error('Error al abrir modal de edición:', error);
-      alert('No se pudo cargar la información del usuario.');
-    }
-  }
-
-
-  // ------------------ Abrir modal de eliminar ------------------
-  function abrirModalEliminar(u) {
-    document.getElementById('idEliminar').value = u.id;
-    document.getElementById('nombreEliminar').textContent = u.nombre;
-    document.getElementById('idEliminar').value = u.id;
-    bsModalEliminar.show();
-  }
-
-  // ------------------ Enviar formulario (Agregar / Editar) ------------------
-  formUsuario.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    formUsuario.classList.remove('was-validated');
-
-    const id = document.getElementById('usuarioId').value;
-    const nombre = document.getElementById('nombre').value.trim();
-    const gmail = document.getElementById('gmail').value.trim();
-    const contrasena = document.getElementById('contrasena').value.trim();
-    const id_rol = parseInt(selectRol.value);
-    const estado = document.getElementById('estado').checked;
-
-    // Validaciones
-    if (!nombre || !gmail || !contrasena || !id_rol) {
-      formUsuario.classList.add('was-validated');
-      return;
-    }
-    if (!validarPassword(contrasena)) {
-      Swal.fire({ icon: 'warning', title: 'Contraseña inválida', text: 'La contraseña debe tener 8+ caracteres, una mayúscula y un número.' });
-      return;
-    }
-
-    try {
-      let res, data;
-      if (!id) {
-        // POST -> crear
-        res = await fetch(ENDPOINT_USUARIOS, {
-          method: 'POST',
+      try {
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${ENDPOINT_USUARIOS}/${id}` : ENDPOINT_USUARIOS;
+        const res = await fetch(url, {
+          method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre, gmail, contrasena, id_rol, estado })
         });
-      } else {
-        // PUT -> editar
-        res = await fetch(`${ENDPOINT_USUARIOS}/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombre, gmail, contrasena, id_rol, estado })
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.mensaje || 'Error al guardar usuario');
+
+        Swal.fire({
+          icon: 'success',
+          title: data.mensaje || 'Operación exitosa',
+          timer: 1300,
+          showConfirmButton: false
         });
+        bsModalUsuario.hide();
+        await cargarUsuarios();
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
       }
+    });
 
-      data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.mensaje || JSON.stringify(data));
+    // ------------------ Confirmar eliminar ------------------
+    document.getElementById('confirmarEliminar').addEventListener('click', async () => {
+      const id = document.getElementById('idEliminar').value;
+      if (!id) return;
+      try {
+        const res = await fetch(`${ENDPOINT_USUARIOS}/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.mensaje || 'Error al eliminar');
+        Swal.fire({ icon: 'success', title: data.mensaje || 'Usuario eliminado', timer: 1200, showConfirmButton: false });
+        bsModalEliminar.hide();
+        await cargarUsuarios();
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
       }
+    });
 
-      // Éxito
-      Swal.fire({
-        icon: 'success',
-        title: data.mensaje || (id ? 'Usuario actualizado' : 'Usuario creado'),
-        timer: 1400,
-        showConfirmButton: false
-      });
-
-      bsModalUsuario.hide();
-      formUsuario.reset();
+    // ------------------ Inicialización ------------------
+    async function init() {
+      await cargarRoles();
       await cargarUsuarios();
-
-    } catch (err) {
-      console.error(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: err.message || 'Error al procesar la solicitud'
-      });
     }
-  });
-
-  // ------------------ Confirmar y ejecutar eliminación ------------------
-  document.getElementById('confirmarEliminar').addEventListener('click', async () => {
-    const id = document.getElementById('idEliminar').value;
-    if (!id) return;
-
-    try {
-      const res = await fetch(`${ENDPOINT_USUARIOS}/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || 'Error al eliminar');
-
-      Swal.fire({ icon: 'success', title: data.mensaje || 'Usuario eliminado', timer: 1200, showConfirmButton: false });
-      bsModalEliminar.hide();
-      await cargarUsuarios();
-    } catch (err) {
-      console.error(err);
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'No se pudo eliminar' });
-    }
-  });
-
-  // ------------------ Inicialización ------------------
-  (async function init() {
-    // Cargar roles y usuarios
-    await cargarRoles();
-    await cargarUsuarios();
-
-    // En este lugar puedes inyectar el nombre del usuario / rol cuando implementes login
-    // ejemplo:
-    // document.getElementById('bienvenida').textContent = `👋 Bienvenido, ${nombreUsuario} - ${nombreRol}`;
-    // <-- AQUÍ IRÁ EL MENSAJE DE BIENVENIDA (LOGIN) -->
-  })();
-
   </script>
+
 </body>
 </html>
