@@ -51,28 +51,49 @@
         // Guardamos datos del usuario
         localStorage.setItem('usuario', JSON.stringify(data.usuario));
 
+        // Determinar dashboard según el rol
         const rol = data.usuario.rol.toLowerCase();
+        let destino = '';
 
-        // 🔀 Redirigir según rol
-        if (rol === 'admin') {
-          window.location.href = 'dashboard.html';
-        } else if (rol === 'supervisor') {
-          window.location.href = 'dashboard_supervisor.html';
-        } else {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Rol no autorizado',
-            text: 'Tu rol no tiene acceso a ningún panel disponible.',
-          }).then(() => {
-            localStorage.removeItem('usuario');
-            window.location.href = 'login.html';
-          });
+        switch (rol) {
+          case 'admin':
+            destino = 'dashboard.html';
+            break;
+          case 'supervisor':
+            destino = 'dashboard_supervisor.html';
+            break;
+          case 'operario':
+            destino = 'dashboard_operario.html';
+            break;
+          default:
+            Swal.fire('Error', 'Rol no reconocido. Contacte al administrador.', 'error');
+            return;
         }
+
+        // Redirigir
+        Swal.fire({
+          icon: 'success',
+          title: 'Inicio de sesión exitoso',
+          text: `Bienvenido, ${data.usuario.nombre}`,
+          timer: 1200,
+          showConfirmButton: false
+        }).then(() => {
+          window.location.href = destino;
+        });
 
       } catch (err) {
         Swal.fire('Error', err.message, 'error');
       }
     });
+
+    // Si ya hay sesión activa, redirigir automáticamente
+    const usuarioActivo = JSON.parse(localStorage.getItem('usuario'));
+    if (usuarioActivo) {
+      const rol = usuarioActivo.rol.toLowerCase();
+      if (rol === 'admin') window.location.replace('dashboard.html');
+      if (rol === 'supervisor') window.location.replace('dashboard_supervisor.html');
+      if (rol === 'operario') window.location.replace('dashboard_operario.html');
+    }
   </script>
 </body>
 </html>
